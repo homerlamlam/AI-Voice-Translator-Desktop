@@ -44,8 +44,19 @@ export const MainPage = () => {
   const lastPttStartAtRef = useRef(0);
   const statusRef = useRef<AppStatus>('idle');
 
-  const { status, sourceText, translatedText, error, logs, setStatus, setTexts, setError, addLog } =
-    useAppStore();
+  const {
+    status,
+    sourceText,
+    translatedText,
+    error,
+    logs,
+    setStatus,
+    setTexts,
+    setError,
+    addLog,
+    addErrorLog,
+    clearError,
+  } = useAppStore();
 
   const pipeline = useMemo(() => new SpeechPipeline(new MockSpeechProvider()), []);
 
@@ -76,9 +87,9 @@ export const MainPage = () => {
         stateMachineRef.current.reset();
         transitionTo('error');
       }
-      addLog(`${appError.code}: ${appError.message}`);
+      addErrorLog(appError);
     },
-    [addLog, setError, transitionTo],
+    [addErrorLog, setError, transitionTo],
   );
 
   const saveSettings = useCallback(
@@ -133,7 +144,7 @@ export const MainPage = () => {
     void window.desktopApi?.setGlobalPushToTalkHotkey(normalized).then((response) => {
       if (!response.ok) {
         setError(response.error);
-        addLog(`${response.error.code}: ${response.error.message}`);
+        addErrorLog(response.error);
       }
     });
   };
@@ -179,7 +190,7 @@ export const MainPage = () => {
       if (!response.ok) {
         setError(response.error);
         transitionTo('error');
-        addLog(`${response.error.code}: ${response.error.message}`);
+        addErrorLog(response.error);
         return;
       }
 
@@ -216,14 +227,32 @@ export const MainPage = () => {
       return;
     }
 
+    let recording: Awaited<ReturnType<AudioRecorderService['stop']>>;
     try {
-      const recording = await recorderRef.current.stop();
+      recording = await recorderRef.current.stop();
       addLog(`recording stopped, duration ${formatDuration(recording.durationMs)}`);
+    } catch (caughtError) {
+      enterError(caughtError, 'RECORDING_FAILED', 'Failed to stop recording.');
+      return;
+    }
+
+    try {
       await runSpeechFlow(recording.blob);
     } catch (caughtError) {
       enterError(caughtError, 'AUDIO_OUTPUT_FAILED', 'Failed to complete flow.');
     }
   }, [addLog, enterError, runSpeechFlow]);
+
+  const recoverFromError = () => {
+    recorderRef.current?.dispose();
+    playerRef.current.stop();
+    stateMachineRef.current.reset();
+    clearError();
+    setDurationMs(0);
+    setVolume(0);
+    transitionTo('idle');
+    addLog('recovered from error');
+  };
 
   const playTestAudio = async () => {
     try {
@@ -389,8 +418,13 @@ export const MainPage = () => {
 
       {error ? (
         <section className="error-panel">
-          <strong>{error.code}</strong>
-          <span>{error.message}</span>
+          <div>
+            <strong>{error.code}</strong>
+            <span>{error.message}</span>
+          </div>
+          <button className="secondary" onClick={recoverFromError}>
+            Recover
+          </button>
         </section>
       ) : null}
 

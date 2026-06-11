@@ -193,7 +193,13 @@ select {
   color: #9f1d16;
   display: flex;
   gap: 12px;
+  justify-content: space-between;
   padding: 12px 16px;
+}
+
+.error-panel div {
+  display: grid;
+  gap: 4px;
 }
 
 .log-panel {
@@ -221,6 +227,10 @@ select {
   color: #64748b;
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 12px;
+}
+
+.log-row-error p {
+  color: #9f1d16;
 }
 
 @media (max-width: 760px) {

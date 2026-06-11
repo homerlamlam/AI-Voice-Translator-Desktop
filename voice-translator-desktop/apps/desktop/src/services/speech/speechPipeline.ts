@@ -4,6 +4,7 @@ import type {
   SpeechProvider,
 } from '../../types/speech';
 import type { AppStatus } from '../../types/status';
+import type { AppErrorCode } from '../../types/errors';
 import { toAppError } from '../../types/errors';
 
 export interface SpeechPipelineOptions {
@@ -25,16 +26,25 @@ export class SpeechPipeline {
   ): Promise<SpeechPipelineResponse> {
     try {
       options.onStage?.('transcribing');
-      const transcription = await this.provider.transcribe(audio);
+      const transcription = await runPipelineStage(
+        () => this.provider.transcribe(audio),
+        'ASR_FAILED',
+        'Speech transcription failed.',
+      );
 
       options.onStage?.('translating');
-      const translation = await this.provider.translate(
-        transcription.sourceText,
-        options.targetLanguage,
+      const translation = await runPipelineStage(
+        () => this.provider.translate(transcription.sourceText, options.targetLanguage),
+        'TRANSLATION_FAILED',
+        'Speech translation failed.',
       );
 
       options.onStage?.('synthesizing');
-      const synthesis = await this.provider.synthesize(translation.translatedText, options.voice);
+      const synthesis = await runPipelineStage(
+        () => this.provider.synthesize(translation.translatedText, options.voice),
+        'TTS_FAILED',
+        'Speech synthesis failed.',
+      );
 
       const result: SpeechPipelineResult = {
         sourceText: transcription.sourceText,
@@ -51,3 +61,15 @@ export class SpeechPipeline {
     }
   }
 }
+
+const runPipelineStage = async <T>(
+  action: () => Promise<T>,
+  fallbackCode: AppErrorCode,
+  fallbackMessage: string,
+): Promise<T> => {
+  try {
+    return await action();
+  } catch (error) {
+    throw toAppError(error, fallbackCode, fallbackMessage);
+  }
+};

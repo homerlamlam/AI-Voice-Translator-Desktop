@@ -12,7 +12,7 @@ export const LogPanel = ({ logs }: LogPanelProps) => (
         <p className="empty">No logs yet.</p>
       ) : (
         logs.map((log) => (
-          <div className="log-row" key={log.id}>
+          <div className={`log-row log-row-${log.level}`} key={log.id}>
             <span>[{log.time}]</span>
             <p>{log.message}</p>
           </div>

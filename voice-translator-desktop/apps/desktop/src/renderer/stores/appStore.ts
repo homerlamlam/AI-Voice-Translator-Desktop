@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import type { AppError } from '../../types/errors';
 import type { LogEntry, AppStatus } from '../../types/status';
-import { createLogEntry } from '../../services/logging/logger';
+import { AppLogger } from '../../services/logging/logger';
+
+const logger = new AppLogger();
 
 interface AppStoreState {
   status: AppStatus;
@@ -13,6 +15,8 @@ interface AppStoreState {
   setTexts: (sourceText: string, translatedText: string) => void;
   setError: (error?: AppError) => void;
   addLog: (message: string) => void;
+  addErrorLog: (error: AppError) => void;
+  clearError: () => void;
 }
 
 export const useAppStore = create<AppStoreState>((set) => ({
@@ -23,12 +27,17 @@ export const useAppStore = create<AppStoreState>((set) => ({
   setStatus: (status) =>
     set((state) => ({
       status,
-      logs: [createLogEntry(`status changed: ${status}`), ...state.logs],
+      logs: [logger.stateChanged(status), ...state.logs],
     })),
   setTexts: (sourceText, translatedText) => set({ sourceText, translatedText }),
   setError: (error) => set({ error }),
   addLog: (message) =>
     set((state) => ({
-      logs: [createLogEntry(message), ...state.logs],
+      logs: [logger.info(message), ...state.logs],
     })),
+  addErrorLog: (error) =>
+    set((state) => ({
+      logs: [logger.error(error), ...state.logs],
+    })),
+  clearError: () => set({ error: undefined }),
 }));

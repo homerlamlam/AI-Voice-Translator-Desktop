@@ -65,3 +65,16 @@ idle -> recording -> transcribing -> translating -> synthesizing -> playing -> i
 ```
 
 All service failures should surface a code and a user-readable message.
+
+## Logging
+
+```ts
+interface LogEntry {
+  id: string;
+  time: string;
+  level: 'info' | 'error';
+  message: string;
+}
+```
+
+Logs are newest-first in the UI. Status transitions, push-to-talk actions, source text, translated text, playback target, and recoverable errors should all be logged.

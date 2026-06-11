@@ -32,6 +32,10 @@ export const toAppError = (
   fallbackCode: AppErrorCode,
   fallbackMessage: string,
 ): AppError => {
+  if (isAppError(error)) {
+    return error;
+  }
+
   if (error instanceof VoiceTranslatorError) {
     return { code: error.code, message: error.message, cause: error.cause };
   }
@@ -41,4 +45,13 @@ export const toAppError = (
   }
 
   return { code: fallbackCode, message: fallbackMessage, cause: error };
+};
+
+export const isAppError = (error: unknown): error is AppError => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const candidate = error as Partial<AppError>;
+  return typeof candidate.code === 'string' && typeof candidate.message === 'string';
 };

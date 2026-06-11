@@ -68,6 +68,18 @@ describe('SpeechPipeline', () => {
       expect(response.error.code).toBe('TTS_FAILED');
     }
   });
+
+  it('maps generic provider errors to the active stage error code', async () => {
+    const pipeline = new SpeechPipeline(new GenericFailingProvider('translate'));
+
+    const response = await pipeline.run(new Blob(['audio']));
+
+    expect(response.ok).toBe(false);
+    if (!response.ok) {
+      expect(response.error.code).toBe('TRANSLATION_FAILED');
+      expect(response.error.message).toBe('Generic provider failure.');
+    }
+  });
 });
 
 class FailingProvider implements SpeechProvider {
@@ -90,6 +102,31 @@ class FailingProvider implements SpeechProvider {
   async synthesize(): Promise<SynthesisResult> {
     if (this.stage === 'synthesize') {
       throw new VoiceTranslatorError('TTS_FAILED', 'TTS failed.');
+    }
+    return { audioOutputPath: '/mock.wav', mimeType: 'audio/wav', voice: 'alloy' };
+  }
+}
+
+class GenericFailingProvider implements SpeechProvider {
+  constructor(private readonly stage: 'transcribe' | 'translate' | 'synthesize') {}
+
+  async transcribe(): Promise<TranscriptionResult> {
+    if (this.stage === 'transcribe') {
+      throw new Error('Generic provider failure.');
+    }
+    return { sourceText: '你好', language: 'zh-CN' };
+  }
+
+  async translate(): Promise<TranslationResult> {
+    if (this.stage === 'translate') {
+      throw new Error('Generic provider failure.');
+    }
+    return { translatedText: 'Hello', targetLanguage: 'en' };
+  }
+
+  async synthesize(): Promise<SynthesisResult> {
+    if (this.stage === 'synthesize') {
+      throw new Error('Generic provider failure.');
     }
     return { audioOutputPath: '/mock.wav', mimeType: 'audio/wav', voice: 'alloy' };
   }

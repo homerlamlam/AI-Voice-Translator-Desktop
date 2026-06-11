@@ -13,7 +13,7 @@ Chinese microphone input -> speech recognition -> English translation -> TTS out
 - Mock ASR, translation, and TTS provider.
 - Focused-window push-to-talk using a configurable hotkey.
 - State machine for the core translation flow.
-- Clear service boundaries for audio, speech providers, config, logging, and UI.
+- Clear service boundaries for audio, speech providers, config, logging, error mapping, and UI.
 - Status, error, source text, translated text, and logs in the UI.
 
 ## Not Supported Yet

@@ -46,7 +46,8 @@ docs/                    Product, routing, API, and test documentation
 - Mock ASR -> mock translation -> mock TTS pipeline after recording stops.
 - Push-to-talk hotkey setting with focused-window press/release handling.
 - Speech state machine for `idle -> recording -> transcribing -> translating -> synthesizing -> playing -> idle`.
-- UI for status, source text, translated text, errors, and logs.
+- UI for status, source text, translated text, recoverable errors, and info/error logs.
+- Stage-specific error mapping for ASR, translation, TTS, recording, hotkey, and audio output failures.
 - ESLint, Prettier, and Vitest.
 
 ## Mock Scope
@@ -76,4 +77,4 @@ OPENAI_API_KEY=
 
 ## Next Recommended Step
 
-Implement task 6: complete the logging/error recovery pass, then add a native global keyboard hook if strict system-wide push-to-talk release detection is required. Electron's built-in `globalShortcut` can detect a global press, but it does not provide reliable key release events.
+Choose the next product direction: either add a native global keyboard hook for strict system-wide push-to-talk release detection, or start moving real OpenAI provider calls behind a secure Electron main-process boundary. Electron's built-in `globalShortcut` can detect a global press, but it does not provide reliable key release events.

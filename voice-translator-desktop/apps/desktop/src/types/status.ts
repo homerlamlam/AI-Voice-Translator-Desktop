@@ -10,5 +10,6 @@ export type AppStatus =
 export interface LogEntry {
   id: string;
   time: string;
+  level: 'info' | 'error';
   message: string;
 }

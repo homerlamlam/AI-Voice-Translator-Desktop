@@ -24,6 +24,8 @@ The first implementation uses a generated WAV test tone and `HTMLAudioElement`. 
 - Mock translation returns fixed English text.
 - Mock TTS returns a fixed local audio path.
 - ASR, translation, and TTS failures return explicit error codes.
+- Generic provider exceptions are mapped to the active stage error code.
+- Error logs use `level: error`.
 
 ## Push-to-Talk Tests
 
@@ -34,6 +36,7 @@ The first implementation uses a generated WAV test tone and `HTMLAudioElement`. 
 - Debounce prevents repeated accidental triggering.
 - State machine rejects invalid transitions.
 - Hotkey setting persists in local storage.
+- Error recovery resets recorder/player state back to `idle`.
 
 Electron's built-in `globalShortcut` can detect global key press events, but it does not expose reliable key release events. Strict system-wide push-to-talk should be covered by a native keyboard hook compatibility test before release.
 
