@@ -16,7 +16,7 @@ The current provider is mock-only.
 
 ## Selected Output Device
 
-Task 4 will add real playback to a chosen output device. The app already enumerates `audiooutput` devices to prepare the UI and service boundary.
+The app enumerates `audiooutput` devices and uses `HTMLAudioElement.setSinkId` when Chromium exposes it. If the selected runtime does not support `setSinkId`, playback falls back to the system default output device.
 
 ## Virtual Audio Devices
 
@@ -24,7 +24,7 @@ The app will not build a virtual audio driver. Users should install an existing 
 
 ## Meeting Software Usage
 
-After task 4, the intended routing is:
+The intended routing is:
 
 1. Select your real microphone in this app.
 2. Select `CABLE Input` or another virtual output device in this app.

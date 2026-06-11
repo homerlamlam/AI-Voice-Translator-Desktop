@@ -14,6 +14,7 @@ Object.defineProperty(globalThis, 'URL', {
   value: {
     ...URL,
     createObjectURL: vi.fn(() => 'blob:mock-audio'),
+    revokeObjectURL: vi.fn(),
   },
   writable: true,
 });

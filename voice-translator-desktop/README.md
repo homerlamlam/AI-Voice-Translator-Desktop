@@ -39,7 +39,8 @@ docs/                    Product, routing, API, and test documentation
 
 - Electron + React + TypeScript + Vite desktop app.
 - Microphone input device enumeration.
-- Audio output device enumeration placeholder.
+- Audio output device enumeration.
+- Playback to the selected output device when Chromium supports `setSinkId`.
 - Start and stop microphone recording with `MediaRecorder`.
 - Recording duration and simple volume meter.
 - Mock ASR -> mock translation -> mock TTS pipeline after recording stops.
@@ -50,7 +51,17 @@ docs/                    Product, routing, API, and test documentation
 
 - `MockSpeechProvider` returns fixed Chinese source text, English translation, and a mock TTS audio path.
 - `OpenAiSpeechProvider` is only a reserved provider skeleton. It reads configuration but does not call OpenAI yet.
-- The "Play test audio" button logs intent only. Output routing to VB-Cable or Virtual Audio Cable is planned for task 4.
+- Mock TTS playback uses a generated WAV test tone, not a real synthesized voice file yet.
+
+## Using VB-Cable or Virtual Audio Cable
+
+1. Install VB-Cable, Virtual Audio Cable, or another virtual audio device.
+2. Restart the desktop app if the new device does not appear.
+3. Select your real microphone under `Microphone input`.
+4. Select the virtual cable output, usually named `CABLE Input`, under `Audio output`.
+5. In Discord, Zoom, Teams, or a browser meeting, select the matching virtual microphone, usually named `CABLE Output`, as the meeting input.
+
+This app does not install or implement a virtual audio driver. It only plays translated audio to an output device that the operating system already exposes.
 
 ## Environment
 
@@ -63,4 +74,4 @@ OPENAI_API_KEY=
 
 ## Next Recommended Step
 
-Implement task 4: audio playback to a selected output device, including a real local test audio file, stop playback, playback state, and README instructions for VB-Cable / Virtual Audio Cable.
+Implement task 5: global push-to-talk with `Alt + Space`, a state machine, debounce, and configurable hotkey settings.

@@ -16,7 +16,7 @@
 - Stop playback.
 - Verify playback state in the UI.
 
-Output playback is planned for task 4.
+The first implementation uses a generated WAV test tone and `HTMLAudioElement`. Real TTS audio files should reuse the same player service.
 
 ## Mock Pipeline Tests
 

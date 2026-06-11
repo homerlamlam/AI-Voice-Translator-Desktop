@@ -10,6 +10,13 @@ export interface RecordingResult {
   durationMs: number;
 }
 
+export interface PlaybackRequest {
+  source: string | Blob;
+  outputDeviceId?: string;
+}
+
+export type PlaybackState = 'idle' | 'playing';
+
 export interface RecorderEvents {
   onDuration?: (durationMs: number) => void;
   onVolume?: (volume: number) => void;

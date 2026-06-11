@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AudioDeviceOption } from '../../types/audio';
 import { AudioRecorderService } from '../../services/audio/recorder';
+import { AudioPlayerService } from '../../services/audio/player';
 import { listInputDevices } from '../../services/audio/inputDevices';
 import { listOutputDevices } from '../../services/audio/outputDevices';
 import { SpeechPipeline } from '../../services/speech/speechPipeline';
@@ -20,6 +21,7 @@ export const MainPage = () => {
   const [durationMs, setDurationMs] = useState(0);
   const [volume, setVolume] = useState(0);
   const recorderRef = useRef<AudioRecorderService | null>(null);
+  const playerRef = useRef<AudioPlayerService>(new AudioPlayerService());
 
   const { status, sourceText, translatedText, error, logs, setStatus, setTexts, setError, addLog } =
     useAppStore();
@@ -44,7 +46,10 @@ export const MainPage = () => {
 
   useEffect(() => {
     void refreshDevices();
-    return () => recorderRef.current?.dispose();
+    return () => {
+      recorderRef.current?.dispose();
+      playerRef.current.stop();
+    };
   }, [refreshDevices]);
 
   const startRecording = async () => {
@@ -96,24 +101,55 @@ export const MainPage = () => {
       addLog(`source text: ${response.result.sourceText}`);
       addLog(`translated text: ${response.result.translatedText}`);
       addLog(`mock tts audio: ${response.result.audioOutputPath}`);
+      setStatus('playing');
+      addLog(
+        selectedOutputDevice
+          ? `playing audio to device: ${selectedOutputDevice}`
+          : 'playing audio to default output device',
+      );
+      await playerRef.current.play({
+        source: playerRef.current.createTestTone(),
+        outputDeviceId: selectedOutputDevice || undefined,
+      });
       setStatus('idle');
     } catch (caughtError) {
-      const appError = toAppError(caughtError, 'RECORDING_FAILED', 'Failed to stop recording.');
+      const appError = toAppError(caughtError, 'AUDIO_OUTPUT_FAILED', 'Failed to complete flow.');
       setError(appError);
       setStatus('error');
       addLog(`${appError.code}: ${appError.message}`);
     }
   };
 
-  const playTestAudio = () => {
-    addLog(
-      selectedOutputDevice
-        ? `test audio requested for output device: ${selectedOutputDevice}`
-        : 'test audio requested; output routing is implemented in task 4',
-    );
+  const playTestAudio = async () => {
+    try {
+      setError(undefined);
+      setStatus('playing');
+      addLog(
+        selectedOutputDevice
+          ? `playing test audio to device: ${selectedOutputDevice}`
+          : 'playing test audio to default output device',
+      );
+      await playerRef.current.play({
+        source: playerRef.current.createTestTone(),
+        outputDeviceId: selectedOutputDevice || undefined,
+      });
+      setStatus('idle');
+    } catch (caughtError) {
+      const appError = toAppError(caughtError, 'AUDIO_OUTPUT_FAILED', 'Failed to play test audio.');
+      setError(appError);
+      setStatus('error');
+      addLog(`${appError.code}: ${appError.message}`);
+    }
+  };
+
+  const stopPlayback = () => {
+    playerRef.current.stop();
+    setStatus('idle');
+    addLog('playback stopped');
   };
 
   const isRecording = status === 'recording';
+  const isPlaying = status === 'playing';
 
   return (
     <main className="app-shell">
@@ -141,7 +177,7 @@ export const MainPage = () => {
           label="Audio output"
           value={selectedOutputDevice}
           devices={outputDevices}
-          placeholder="Output routing lands in task 4"
+          placeholder="Use default output device"
           onChange={setSelectedOutputDevice}
         />
 
@@ -152,8 +188,11 @@ export const MainPage = () => {
           <button disabled={!isRecording} onClick={() => void stopRecording()}>
             Stop recording
           </button>
-          <button className="secondary" onClick={playTestAudio}>
+          <button className="secondary" disabled={isRecording || isPlaying} onClick={playTestAudio}>
             Play test audio
+          </button>
+          <button className="secondary" disabled={!isPlaying} onClick={stopPlayback}>
+            Stop playback
           </button>
         </div>
 
