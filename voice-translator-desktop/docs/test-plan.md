@@ -28,12 +28,14 @@ The first implementation uses a generated WAV test tone and `HTMLAudioElement`. 
 ## Push-to-Talk Tests
 
 - Default hotkey is `Alt + Space`.
-- Press starts recording.
-- Release stops recording.
+- Press starts recording while the app window is focused.
+- Release stops recording while the app window is focused.
 - Stop triggers transcribing, translating, synthesizing, playing.
 - Debounce prevents repeated accidental triggering.
+- State machine rejects invalid transitions.
+- Hotkey setting persists in local storage.
 
-Push-to-talk is planned for task 5.
+Electron's built-in `globalShortcut` can detect global key press events, but it does not expose reliable key release events. Strict system-wide push-to-talk should be covered by a native keyboard hook compatibility test before release.
 
 ## 30 Minute Stability Test
 

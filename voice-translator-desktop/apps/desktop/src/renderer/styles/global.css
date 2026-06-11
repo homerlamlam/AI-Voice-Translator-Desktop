@@ -121,6 +121,16 @@ select {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
+.hotkey-note {
+  background: #eef6f3;
+  border: 1px solid #c8ded6;
+  border-radius: 6px;
+  color: #31564d;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px 12px;
+}
+
 .meter-grid,
 .content-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));

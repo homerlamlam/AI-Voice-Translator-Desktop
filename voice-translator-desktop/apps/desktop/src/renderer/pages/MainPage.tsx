@@ -1,32 +1,98 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { AudioDeviceOption } from '../../types/audio';
+import type { AppStatus } from '../../types/status';
 import { AudioRecorderService } from '../../services/audio/recorder';
 import { AudioPlayerService } from '../../services/audio/player';
 import { listInputDevices } from '../../services/audio/inputDevices';
 import { listOutputDevices } from '../../services/audio/outputDevices';
+import { SettingsStore } from '../../services/config/settingsStore';
+import {
+  matchesPushToTalkStart,
+  matchesPushToTalkStop,
+  normalizePushToTalkHotkey,
+  supportedPushToTalkHotkeys,
+} from '../../services/hotkeys/pushToTalkHotkey';
 import { SpeechPipeline } from '../../services/speech/speechPipeline';
 import { MockSpeechProvider } from '../../services/speech/providers/mockProvider';
+import { SpeechStateMachine } from '../../services/state/speechStateMachine';
 import { toAppError } from '../../types/errors';
 import { DeviceSelect } from '../components/DeviceSelect';
 import { LogPanel } from '../components/LogPanel';
 import { useAppStore } from '../stores/appStore';
 
 const formatDuration = (durationMs: number) => `${(durationMs / 1000).toFixed(1)}s`;
+const pushToTalkDebounceMs = 250;
 
 export const MainPage = () => {
+  const settingsStore = useMemo(() => new SettingsStore(), []);
+  const initialSettings = useMemo(() => settingsStore.load(), [settingsStore]);
   const [inputDevices, setInputDevices] = useState<AudioDeviceOption[]>([]);
   const [outputDevices, setOutputDevices] = useState<AudioDeviceOption[]>([]);
-  const [selectedInputDevice, setSelectedInputDevice] = useState('');
-  const [selectedOutputDevice, setSelectedOutputDevice] = useState('');
+  const [selectedInputDevice, setSelectedInputDevice] = useState(initialSettings.inputDeviceId ?? '');
+  const [selectedOutputDevice, setSelectedOutputDevice] = useState(
+    initialSettings.outputDeviceId ?? '',
+  );
+  const [pushToTalkHotkey, setPushToTalkHotkey] = useState(
+    normalizePushToTalkHotkey(initialSettings.pushToTalkHotkey),
+  );
   const [durationMs, setDurationMs] = useState(0);
   const [volume, setVolume] = useState(0);
   const recorderRef = useRef<AudioRecorderService | null>(null);
   const playerRef = useRef<AudioPlayerService>(new AudioPlayerService());
+  const stateMachineRef = useRef(new SpeechStateMachine());
+  const pttActiveRef = useRef(false);
+  const lastPttStartAtRef = useRef(0);
+  const statusRef = useRef<AppStatus>('idle');
 
   const { status, sourceText, translatedText, error, logs, setStatus, setTexts, setError, addLog } =
     useAppStore();
 
   const pipeline = useMemo(() => new SpeechPipeline(new MockSpeechProvider()), []);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
+
+  const transitionTo = useCallback(
+    (nextStatus: AppStatus) => {
+      if (stateMachineRef.current.status === nextStatus) {
+        setStatus(nextStatus);
+        return;
+      }
+
+      stateMachineRef.current.transition(nextStatus);
+      setStatus(nextStatus);
+    },
+    [setStatus],
+  );
+
+  const enterError = useCallback(
+    (caughtError: unknown, fallbackCode: Parameters<typeof toAppError>[1], fallbackMessage: string) => {
+      const appError = toAppError(caughtError, fallbackCode, fallbackMessage);
+      setError(appError);
+      try {
+        transitionTo('error');
+      } catch {
+        stateMachineRef.current.reset();
+        transitionTo('error');
+      }
+      addLog(`${appError.code}: ${appError.message}`);
+    },
+    [addLog, setError, transitionTo],
+  );
+
+  const saveSettings = useCallback(
+    (overrides: Partial<typeof initialSettings>) => {
+      settingsStore.save({
+        ...settingsStore.load(),
+        inputDeviceId: selectedInputDevice,
+        outputDeviceId: selectedOutputDevice,
+        pushToTalkHotkey,
+        ...overrides,
+      });
+    },
+    [pushToTalkHotkey, selectedInputDevice, selectedOutputDevice, settingsStore],
+  );
 
   const refreshDevices = useCallback(async () => {
     try {
@@ -37,12 +103,9 @@ export const MainPage = () => {
       setSelectedOutputDevice((current) => current || outputs[0]?.deviceId || '');
       addLog(`devices refreshed: ${inputs.length} input(s), ${outputs.length} output(s)`);
     } catch (caughtError) {
-      const appError = toAppError(caughtError, 'MIC_DEVICE_NOT_FOUND', 'Failed to list devices.');
-      setError(appError);
-      setStatus('error');
-      addLog(`${appError.code}: ${appError.message}`);
+      enterError(caughtError, 'MIC_DEVICE_NOT_FOUND', 'Failed to list devices.');
     }
-  }, [addLog, setError, setStatus]);
+  }, [addLog, enterError]);
 
   useEffect(() => {
     void refreshDevices();
@@ -52,8 +115,40 @@ export const MainPage = () => {
     };
   }, [refreshDevices]);
 
-  const startRecording = async () => {
+  const handleInputDeviceChange = (deviceId: string) => {
+    setSelectedInputDevice(deviceId);
+    saveSettings({ inputDeviceId: deviceId });
+  };
+
+  const handleOutputDeviceChange = (deviceId: string) => {
+    setSelectedOutputDevice(deviceId);
+    saveSettings({ outputDeviceId: deviceId });
+  };
+
+  const handleHotkeyChange = (hotkey: string) => {
+    const normalized = normalizePushToTalkHotkey(hotkey);
+    setPushToTalkHotkey(normalized);
+    saveSettings({ pushToTalkHotkey: normalized });
+    addLog(`push-to-talk hotkey set to ${normalized}`);
+    void window.desktopApi?.setGlobalPushToTalkHotkey(normalized).then((response) => {
+      if (!response.ok) {
+        setError(response.error);
+        addLog(`${response.error.code}: ${response.error.message}`);
+      }
+    });
+  };
+
+  const startRecording = useCallback(async () => {
+    if (statusRef.current !== 'idle' && statusRef.current !== 'error') {
+      return;
+    }
+
     try {
+      if (statusRef.current === 'error') {
+        stateMachineRef.current.reset();
+        transitionTo('idle');
+      }
+
       setError(undefined);
       setTexts('', '');
       setDurationMs(0);
@@ -63,36 +158,27 @@ export const MainPage = () => {
         onVolume: setVolume,
       });
       await recorderRef.current.start(selectedInputDevice || undefined);
-      setStatus('recording');
+      transitionTo('recording');
       addLog('recording started');
     } catch (caughtError) {
-      const appError = toAppError(caughtError, 'RECORDING_FAILED', 'Failed to start recording.');
-      setError(appError);
-      setStatus('error');
-      addLog(`${appError.code}: ${appError.message}`);
+      enterError(caughtError, 'RECORDING_FAILED', 'Failed to start recording.');
     }
-  };
+  }, [addLog, enterError, selectedInputDevice, setError, setTexts, transitionTo]);
 
-  const stopRecording = async () => {
-    if (!recorderRef.current) {
-      return;
-    }
+  const runSpeechFlow = useCallback(
+    async (blob: Blob) => {
+      const response = await pipeline.run(blob, {
+        targetLanguage: initialSettings.targetLanguage,
+        voice: initialSettings.voice,
+        onStage: (stage) => {
+          transitionTo(stage);
+          addLog(`${stage}...`);
+        },
+      });
 
-    try {
-      const recording = await recorderRef.current.stop();
-      addLog(`recording stopped, duration ${formatDuration(recording.durationMs)}`);
-
-      setStatus('transcribing');
-      addLog('transcribing...');
-      setStatus('translating');
-      addLog('translating...');
-      setStatus('synthesizing');
-      addLog('synthesizing...');
-
-      const response = await pipeline.run(recording.blob);
       if (!response.ok) {
         setError(response.error);
-        setStatus('error');
+        transitionTo('error');
         addLog(`${response.error.code}: ${response.error.message}`);
         return;
       }
@@ -101,7 +187,7 @@ export const MainPage = () => {
       addLog(`source text: ${response.result.sourceText}`);
       addLog(`translated text: ${response.result.translatedText}`);
       addLog(`mock tts audio: ${response.result.audioOutputPath}`);
-      setStatus('playing');
+      transitionTo('playing');
       addLog(
         selectedOutputDevice
           ? `playing audio to device: ${selectedOutputDevice}`
@@ -111,19 +197,41 @@ export const MainPage = () => {
         source: playerRef.current.createTestTone(),
         outputDeviceId: selectedOutputDevice || undefined,
       });
-      setStatus('idle');
-    } catch (caughtError) {
-      const appError = toAppError(caughtError, 'AUDIO_OUTPUT_FAILED', 'Failed to complete flow.');
-      setError(appError);
-      setStatus('error');
-      addLog(`${appError.code}: ${appError.message}`);
+      transitionTo('idle');
+    },
+    [
+      addLog,
+      initialSettings.targetLanguage,
+      initialSettings.voice,
+      pipeline,
+      selectedOutputDevice,
+      setError,
+      setTexts,
+      transitionTo,
+    ],
+  );
+
+  const stopRecording = useCallback(async () => {
+    if (!recorderRef.current || statusRef.current !== 'recording') {
+      return;
     }
-  };
+
+    try {
+      const recording = await recorderRef.current.stop();
+      addLog(`recording stopped, duration ${formatDuration(recording.durationMs)}`);
+      await runSpeechFlow(recording.blob);
+    } catch (caughtError) {
+      enterError(caughtError, 'AUDIO_OUTPUT_FAILED', 'Failed to complete flow.');
+    }
+  }, [addLog, enterError, runSpeechFlow]);
 
   const playTestAudio = async () => {
     try {
       setError(undefined);
-      setStatus('playing');
+      if (statusRef.current === 'error') {
+        stateMachineRef.current.reset();
+      }
+      transitionTo('playing');
       addLog(
         selectedOutputDevice
           ? `playing test audio to device: ${selectedOutputDevice}`
@@ -133,20 +241,65 @@ export const MainPage = () => {
         source: playerRef.current.createTestTone(),
         outputDeviceId: selectedOutputDevice || undefined,
       });
-      setStatus('idle');
+      transitionTo('idle');
     } catch (caughtError) {
-      const appError = toAppError(caughtError, 'AUDIO_OUTPUT_FAILED', 'Failed to play test audio.');
-      setError(appError);
-      setStatus('error');
-      addLog(`${appError.code}: ${appError.message}`);
+      enterError(caughtError, 'AUDIO_OUTPUT_FAILED', 'Failed to play test audio.');
     }
   };
 
   const stopPlayback = () => {
     playerRef.current.stop();
-    setStatus('idle');
+    if (statusRef.current === 'playing') {
+      transitionTo('idle');
+    }
     addLog('playback stopped');
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!matchesPushToTalkStart(event, pushToTalkHotkey)) {
+        return;
+      }
+
+      event.preventDefault();
+      const now = Date.now();
+      if (pttActiveRef.current || now - lastPttStartAtRef.current < pushToTalkDebounceMs) {
+        return;
+      }
+
+      pttActiveRef.current = true;
+      lastPttStartAtRef.current = now;
+      addLog(`push-to-talk pressed: ${pushToTalkHotkey}`);
+      void startRecording();
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (!pttActiveRef.current || !matchesPushToTalkStop(event, pushToTalkHotkey)) {
+        return;
+      }
+
+      event.preventDefault();
+      pttActiveRef.current = false;
+      addLog(`push-to-talk released: ${pushToTalkHotkey}`);
+      void stopRecording();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [addLog, pushToTalkHotkey, startRecording, stopRecording]);
+
+  useEffect(() => {
+    const unsubscribe = window.desktopApi?.onGlobalPushToTalkPressed(() => {
+      addLog('global push-to-talk press detected; release detection requires focused window MVP');
+    });
+
+    return () => unsubscribe?.();
+  }, [addLog]);
 
   const isRecording = status === 'recording';
   const isPlaying = status === 'playing';
@@ -170,7 +323,7 @@ export const MainPage = () => {
           value={selectedInputDevice}
           devices={inputDevices}
           placeholder="Select microphone"
-          onChange={setSelectedInputDevice}
+          onChange={handleInputDeviceChange}
         />
         <DeviceSelect
           id="output-device"
@@ -178,8 +331,28 @@ export const MainPage = () => {
           value={selectedOutputDevice}
           devices={outputDevices}
           placeholder="Use default output device"
-          onChange={setSelectedOutputDevice}
+          onChange={handleOutputDeviceChange}
         />
+
+        <label className="field" htmlFor="ptt-hotkey">
+          <span>Push-to-talk hotkey</span>
+          <select
+            id="ptt-hotkey"
+            value={pushToTalkHotkey}
+            onChange={(event) => handleHotkeyChange(event.target.value)}
+          >
+            {supportedPushToTalkHotkeys.map((hotkey) => (
+              <option key={hotkey} value={hotkey}>
+                {hotkey}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="hotkey-note">
+          Hold {pushToTalkHotkey} while this window is focused. Main-process global press detection
+          is registered, but global release detection is deferred to the native hook step.
+        </div>
 
         <div className="button-row">
           <button disabled={isRecording} onClick={() => void startRecording()}>

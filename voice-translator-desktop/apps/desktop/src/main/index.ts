@@ -32,7 +32,11 @@ const createWindow = () => {
 
 app.whenReady().then(() => {
   registerIpcHandlers();
-  registerGlobalShortcuts();
+  try {
+    registerGlobalShortcuts();
+  } catch (error) {
+    console.error(error);
+  }
   createWindow();
 
   app.on('activate', () => {

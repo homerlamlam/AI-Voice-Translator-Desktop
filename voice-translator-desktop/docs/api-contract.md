@@ -48,4 +48,20 @@ interface SpeechPipelineResult {
 - `HOTKEY_REGISTER_FAILED`
 - `CONFIG_LOAD_FAILED`
 
+## Runtime States
+
+- `idle`
+- `recording`
+- `transcribing`
+- `translating`
+- `synthesizing`
+- `playing`
+- `error`
+
+Expected successful flow:
+
+```text
+idle -> recording -> transcribing -> translating -> synthesizing -> playing -> idle
+```
+
 All service failures should surface a code and a user-readable message.

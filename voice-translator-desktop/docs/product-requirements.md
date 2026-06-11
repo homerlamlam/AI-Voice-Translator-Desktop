@@ -11,6 +11,8 @@ Chinese microphone input -> speech recognition -> English translation -> TTS out
 - Desktop application using Electron, React, TypeScript, and Vite.
 - Microphone selection and recording.
 - Mock ASR, translation, and TTS provider.
+- Focused-window push-to-talk using a configurable hotkey.
+- State machine for the core translation flow.
 - Clear service boundaries for audio, speech providers, config, logging, and UI.
 - Status, error, source text, translated text, and logs in the UI.
 
@@ -23,12 +25,12 @@ Chinese microphone input -> speech recognition -> English translation -> TTS out
 - Account system, payment, or cloud sync.
 - Custom virtual audio driver.
 - Real external AI API calls.
+- Strict system-wide push-to-talk release detection without the app focused.
 
 ## Roadmap
 
-1. Task 4: play generated audio to a selected output device.
-2. Task 5: global push-to-talk hotkey with a state machine.
-3. Task 6: complete logging and recoverable error handling.
-4. Real OpenAI provider.
-5. Additional providers such as Azure, iFlytek, Volcano, and Tongyi.
-6. Stability and compatibility testing with Zoom, Discord, Teams, and browser meetings.
+1. Task 6: complete logging and recoverable error handling.
+2. Native global keyboard hook for strict press/release push-to-talk outside the app window.
+3. Real OpenAI provider through the Electron main process or another secure backend boundary.
+4. Additional providers such as Azure, iFlytek, Volcano, and Tongyi.
+5. Stability and compatibility testing with Zoom, Discord, Teams, and browser meetings.

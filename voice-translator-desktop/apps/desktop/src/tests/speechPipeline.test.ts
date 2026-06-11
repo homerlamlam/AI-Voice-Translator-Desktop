@@ -23,6 +23,19 @@ describe('SpeechPipeline', () => {
     }
   });
 
+  it('reports pipeline stages in execution order', async () => {
+    const pipeline = new SpeechPipeline(new MockSpeechProvider());
+    const stages: string[] = [];
+
+    await pipeline.run(new Blob(['audio']), {
+      targetLanguage: 'en',
+      voice: 'alloy',
+      onStage: (stage) => stages.push(stage),
+    });
+
+    expect(stages).toEqual(['transcribing', 'translating', 'synthesizing']);
+  });
+
   it('returns ASR failures with an explicit error code', async () => {
     const pipeline = new SpeechPipeline(new FailingProvider('transcribe'));
 

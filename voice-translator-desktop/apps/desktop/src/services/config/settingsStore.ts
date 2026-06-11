@@ -1,6 +1,7 @@
 export interface AppSettings {
   inputDeviceId?: string;
   outputDeviceId?: string;
+  pushToTalkHotkey: string;
   speechProvider: 'mock' | 'openai';
   targetLanguage: string;
   voice: string;
@@ -9,6 +10,7 @@ export interface AppSettings {
 const storageKey = 'voice-translator-settings';
 
 export const defaultSettings: AppSettings = {
+  pushToTalkHotkey: 'Alt+Space',
   speechProvider: 'mock',
   targetLanguage: 'en',
   voice: 'alloy',
