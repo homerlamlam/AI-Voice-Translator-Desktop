@@ -1,0 +1,37 @@
+{
+  "name": "@voice-translator/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist-electron/main/index.js",
+  "scripts": {
+    "dev": "concurrently -k \"vite --host 127.0.0.1\" \"wait-on tcp:5173 && tsc -p tsconfig.main.json && electron .\"",
+    "build": "tsc -p tsconfig.main.json && vite build && tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "electron": "^31.3.1",
+    "vite": "^5.4.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.9.0",
+    "@testing-library/react": "^16.0.1",
+    "@types/node": "^20.14.15",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.9.0",
+    "jsdom": "^24.1.1",
+    "typescript": "^5.5.4",
+    "typescript-eslint": "^8.0.1",
+    "vitest": "^2.0.5",
+    "wait-on": "^7.2.0"
+  }
+}

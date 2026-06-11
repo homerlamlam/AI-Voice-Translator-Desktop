@@ -1,0 +1,19 @@
+{
+  "name": "voice-translator-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace apps/desktop run dev",
+    "build": "npm --workspace apps/desktop run build",
+    "lint": "npm --workspace apps/desktop run lint",
+    "test": "npm --workspace apps/desktop run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\""
+  },
+  "devDependencies": {
+    "prettier": "^3.3.3"
+  }
+}
