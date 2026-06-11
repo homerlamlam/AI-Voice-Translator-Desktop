@@ -9,7 +9,7 @@ export class MockSpeechProvider implements SpeechProvider {
   async transcribe(_audioPath: string | Blob): Promise<TranscriptionResult> {
     await delay(250);
     return {
-      sourceText: '我想确认一下明天的会议时间',
+      sourceText: '\u6211\u60f3\u786e\u8ba4\u4e00\u4e0b\u660e\u5929\u7684\u4f1a\u8bae\u65f6\u95f4',
       language: 'zh-CN',
     };
   }

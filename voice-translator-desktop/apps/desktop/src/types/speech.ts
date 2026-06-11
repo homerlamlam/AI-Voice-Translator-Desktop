@@ -1,4 +1,4 @@
-import type { AppError } from './errors';
+import type { AppError } from './errors.js';
 
 export interface TranscriptionResult {
   sourceText: string;

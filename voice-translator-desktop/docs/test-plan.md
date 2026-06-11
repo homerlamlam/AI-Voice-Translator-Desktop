@@ -27,6 +27,13 @@ The first implementation uses a generated WAV test tone and `HTMLAudioElement`. 
 - Generic provider exceptions are mapped to the active stage error code.
 - Error logs use `level: error`.
 
+## OpenAI Provider Tests
+
+- Renderer provider sends audio bytes through the desktop bridge.
+- Renderer provider preserves explicit bridge errors.
+- Main process keeps `OPENAI_API_KEY` out of renderer code.
+- With a real key, record a short Chinese phrase and verify OpenAI ASR, translation, TTS file creation, and playback.
+
 ## Push-to-Talk Tests
 
 - Default hotkey is `Alt + Space`.

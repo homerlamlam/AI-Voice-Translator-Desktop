@@ -17,7 +17,9 @@ describe('SpeechPipeline', () => {
 
     expect(response.ok).toBe(true);
     if (response.ok) {
-      expect(response.result.sourceText).toBe('我想确认一下明天的会议时间');
+      expect(response.result.sourceText).toBe(
+        '\u6211\u60f3\u786e\u8ba4\u4e00\u4e0b\u660e\u5929\u7684\u4f1a\u8bae\u65f6\u95f4',
+      );
       expect(response.result.translatedText).toBe("I'd like to confirm tomorrow's meeting time.");
       expect(response.result.audioOutputPath).toBe('/mock-audio/tts-confirm-meeting.wav');
     }
@@ -89,7 +91,7 @@ class FailingProvider implements SpeechProvider {
     if (this.stage === 'transcribe') {
       throw new VoiceTranslatorError('ASR_FAILED', 'ASR failed.');
     }
-    return { sourceText: '你好', language: 'zh-CN' };
+    return { sourceText: '\u4f60\u597d', language: 'zh-CN' };
   }
 
   async translate(): Promise<TranslationResult> {
@@ -114,7 +116,7 @@ class GenericFailingProvider implements SpeechProvider {
     if (this.stage === 'transcribe') {
       throw new Error('Generic provider failure.');
     }
-    return { sourceText: '你好', language: 'zh-CN' };
+    return { sourceText: '\u4f60\u597d', language: 'zh-CN' };
   }
 
   async translate(): Promise<TranslationResult> {

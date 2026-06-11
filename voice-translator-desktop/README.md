@@ -48,6 +48,7 @@ docs/                    Product, routing, API, and test documentation
 - Speech state machine for `idle -> recording -> transcribing -> translating -> synthesizing -> playing -> idle`.
 - UI for status, source text, translated text, recoverable errors, and info/error logs.
 - Stage-specific error mapping for ASR, translation, TTS, recording, hotkey, and audio output failures.
+- Optional OpenAI provider through Electron main-process IPC.
 - ESLint, Prettier, and Vitest.
 
 ## Mock Scope
@@ -68,13 +69,18 @@ This app does not install or implement a virtual audio driver. It only plays tra
 
 ## Environment
 
-Copy `.env.example` to `.env.local` when real providers are added.
+Copy `.env.example` to `.env.local` to use the OpenAI provider. The API key is read by the Electron main process, not by the React renderer.
 
 ```bash
 SPEECH_PROVIDER=mock
 OPENAI_API_KEY=
+OPENAI_TRANSCRIPTION_MODEL=gpt-4o-mini-transcribe
+OPENAI_TRANSLATION_MODEL=gpt-4o-mini
+OPENAI_TTS_MODEL=gpt-4o-mini-tts
 ```
+
+In the app, keep `Speech provider` set to `Mock provider` for offline testing. Select `OpenAI provider` only after configuring `OPENAI_API_KEY`.
 
 ## Next Recommended Step
 
-Choose the next product direction: either add a native global keyboard hook for strict system-wide push-to-talk release detection, or start moving real OpenAI provider calls behind a secure Electron main-process boundary. Electron's built-in `globalShortcut` can detect a global press, but it does not provide reliable key release events.
+Add a native global keyboard hook for strict system-wide push-to-talk release detection. Electron's built-in `globalShortcut` can detect a global press, but it does not provide reliable key release events.

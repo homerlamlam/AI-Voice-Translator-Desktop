@@ -14,8 +14,10 @@ import {
 } from '../../services/hotkeys/pushToTalkHotkey';
 import { SpeechPipeline } from '../../services/speech/speechPipeline';
 import { MockSpeechProvider } from '../../services/speech/providers/mockProvider';
+import { OpenAiSpeechProvider } from '../../services/speech/providers/openaiProvider';
 import { SpeechStateMachine } from '../../services/state/speechStateMachine';
 import { toAppError } from '../../types/errors';
+import type { AppSettings } from '../../services/config/settingsStore';
 import { DeviceSelect } from '../components/DeviceSelect';
 import { LogPanel } from '../components/LogPanel';
 import { useAppStore } from '../stores/appStore';
@@ -34,6 +36,9 @@ export const MainPage = () => {
   );
   const [pushToTalkHotkey, setPushToTalkHotkey] = useState(
     normalizePushToTalkHotkey(initialSettings.pushToTalkHotkey),
+  );
+  const [speechProvider, setSpeechProvider] = useState<AppSettings['speechProvider']>(
+    initialSettings.speechProvider,
   );
   const [durationMs, setDurationMs] = useState(0);
   const [volume, setVolume] = useState(0);
@@ -58,7 +63,13 @@ export const MainPage = () => {
     clearError,
   } = useAppStore();
 
-  const pipeline = useMemo(() => new SpeechPipeline(new MockSpeechProvider()), []);
+  const pipeline = useMemo(
+    () =>
+      new SpeechPipeline(
+        speechProvider === 'openai' ? new OpenAiSpeechProvider() : new MockSpeechProvider(),
+      ),
+    [speechProvider],
+  );
 
   useEffect(() => {
     statusRef.current = status;
@@ -99,10 +110,11 @@ export const MainPage = () => {
         inputDeviceId: selectedInputDevice,
         outputDeviceId: selectedOutputDevice,
         pushToTalkHotkey,
+        speechProvider,
         ...overrides,
       });
     },
-    [pushToTalkHotkey, selectedInputDevice, selectedOutputDevice, settingsStore],
+    [pushToTalkHotkey, selectedInputDevice, selectedOutputDevice, settingsStore, speechProvider],
   );
 
   const refreshDevices = useCallback(async () => {
@@ -147,6 +159,12 @@ export const MainPage = () => {
         addErrorLog(response.error);
       }
     });
+  };
+
+  const handleSpeechProviderChange = (provider: AppSettings['speechProvider']) => {
+    setSpeechProvider(provider);
+    saveSettings({ speechProvider: provider });
+    addLog(`speech provider set to ${provider}`);
   };
 
   const startRecording = useCallback(async () => {
@@ -197,7 +215,7 @@ export const MainPage = () => {
       setTexts(response.result.sourceText, response.result.translatedText);
       addLog(`source text: ${response.result.sourceText}`);
       addLog(`translated text: ${response.result.translatedText}`);
-      addLog(`mock tts audio: ${response.result.audioOutputPath}`);
+      addLog(`${speechProvider} tts audio: ${response.result.audioOutputPath}`);
       transitionTo('playing');
       addLog(
         selectedOutputDevice
@@ -205,7 +223,10 @@ export const MainPage = () => {
           : 'playing audio to default output device',
       );
       await playerRef.current.play({
-        source: playerRef.current.createTestTone(),
+        source:
+          speechProvider === 'openai'
+            ? response.result.audioOutputPath
+            : playerRef.current.createTestTone(),
         outputDeviceId: selectedOutputDevice || undefined,
       });
       transitionTo('idle');
@@ -216,6 +237,7 @@ export const MainPage = () => {
       initialSettings.voice,
       pipeline,
       selectedOutputDevice,
+      speechProvider,
       setError,
       setTexts,
       transitionTo,
@@ -362,6 +384,20 @@ export const MainPage = () => {
           placeholder="Use default output device"
           onChange={handleOutputDeviceChange}
         />
+
+        <label className="field" htmlFor="speech-provider">
+          <span>Speech provider</span>
+          <select
+            id="speech-provider"
+            value={speechProvider}
+            onChange={(event) =>
+              handleSpeechProviderChange(event.target.value as AppSettings['speechProvider'])
+            }
+          >
+            <option value="mock">Mock provider</option>
+            <option value="openai">OpenAI provider</option>
+          </select>
+        </label>
 
         <label className="field" htmlFor="ptt-hotkey">
           <span>Push-to-talk hotkey</span>

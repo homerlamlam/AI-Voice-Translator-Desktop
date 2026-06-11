@@ -78,3 +78,13 @@ interface LogEntry {
 ```
 
 Logs are newest-first in the UI. Status transitions, push-to-talk actions, source text, translated text, playback target, and recoverable errors should all be logged.
+
+## OpenAI Provider Boundary
+
+The renderer never reads `OPENAI_API_KEY`. In OpenAI mode it calls Electron IPC:
+
+- `speech:openai-transcribe`
+- `speech:openai-translate`
+- `speech:openai-synthesize`
+
+The main process reads `.env.local` or process environment variables, calls OpenAI, writes synthesized audio to local app data, and returns a playable `file://` URL.

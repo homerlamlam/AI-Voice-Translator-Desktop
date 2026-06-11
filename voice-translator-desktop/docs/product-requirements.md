@@ -15,6 +15,7 @@ Chinese microphone input -> speech recognition -> English translation -> TTS out
 - State machine for the core translation flow.
 - Clear service boundaries for audio, speech providers, config, logging, error mapping, and UI.
 - Status, error, source text, translated text, and logs in the UI.
+- Optional OpenAI provider behind the Electron main-process boundary.
 
 ## Not Supported Yet
 
@@ -24,7 +25,7 @@ Chinese microphone input -> speech recognition -> English translation -> TTS out
 - Voice cloning.
 - Account system, payment, or cloud sync.
 - Custom virtual audio driver.
-- Real external AI API calls.
+- Provider streaming APIs.
 - Strict system-wide push-to-talk release detection without the app focused.
 
 ## Roadmap
