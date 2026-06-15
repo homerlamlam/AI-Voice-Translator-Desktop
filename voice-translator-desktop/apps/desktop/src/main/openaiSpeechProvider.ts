@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, net } from 'electron';
 import fsSync from 'node:fs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -116,13 +116,18 @@ export class MainOpenAiSpeechProvider {
     init: RequestInit,
     errorCode: Exclude<AppErrorCode, 'CONFIG_LOAD_FAILED'>,
   ): Promise<Response> {
-    const response = await fetch(url, {
-      ...init,
-      headers: {
-        Authorization: `Bearer ${this.config.apiKey}`,
-        ...init.headers,
-      },
-    });
+    let response: Response;
+    try {
+      response = await net.fetch(url, {
+        ...init,
+        headers: {
+          Authorization: `Bearer ${this.config.apiKey}`,
+          ...init.headers,
+        },
+      });
+    } catch (error) {
+      throw new VoiceTranslatorError(errorCode, networkFailureMessage(error), error);
+    }
 
     if (!response.ok) {
       const message = await readOpenAiError(response);
@@ -147,6 +152,18 @@ const loadOpenAiConfig = (): OpenAiConfig => {
     translationModel: env.OPENAI_TRANSLATION_MODEL ?? 'gpt-4o-mini',
     ttsModel: env.OPENAI_TTS_MODEL ?? 'gpt-4o-mini-tts',
   };
+};
+
+const networkFailureMessage = (error: unknown): string => {
+  const cause = error instanceof Error ? error.cause : undefined;
+  const causeCode =
+    cause && typeof cause === 'object' && 'code' in cause ? String(cause.code) : undefined;
+  const detail = error instanceof Error ? error.message : 'Unknown network error.';
+  const suffix = causeCode ? ` (${causeCode})` : '';
+
+  return redactSecrets(
+    `OpenAI network request failed before receiving a response: ${detail}${suffix}. Check VPN/proxy/firewall settings and retry.`,
+  );
 };
 
 const readEnvFile = (): Record<string, string> => {
