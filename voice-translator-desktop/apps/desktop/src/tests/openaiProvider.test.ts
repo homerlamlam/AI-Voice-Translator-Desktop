@@ -58,6 +58,7 @@ describe('OpenAiSpeechProvider renderer bridge', () => {
       ok: true,
       result: {
         audioOutputPath: 'file:///tmp/tts.mp3',
+        audioPlaybackUrl: 'data:audio/mpeg;base64,AAAA',
         mimeType: 'audio/mpeg',
         voice: 'alloy',
       },
@@ -67,5 +68,6 @@ describe('OpenAiSpeechProvider renderer bridge', () => {
     const result = await provider.synthesize('Hello', 'alloy');
 
     expect(result.audioOutputPath).toBe('file:///tmp/tts.mp3');
+    expect(result.audioPlaybackUrl).toBe('data:audio/mpeg;base64,AAAA');
   });
 });

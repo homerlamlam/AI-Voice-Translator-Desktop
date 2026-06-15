@@ -106,6 +106,7 @@ export class MainOpenAiSpeechProvider {
 
     return {
       audioOutputPath: pathToFileURL(outputPath).toString(),
+      audioPlaybackUrl: `data:audio/mpeg;base64,${audio.toString('base64')}`,
       mimeType: 'audio/mpeg',
       voice,
     };

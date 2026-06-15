@@ -50,6 +50,7 @@ export class SpeechPipeline {
         sourceText: transcription.sourceText,
         translatedText: translation.translatedText,
         audioOutputPath: synthesis.audioOutputPath,
+        audioPlaybackUrl: synthesis.audioPlaybackUrl,
       };
 
       return { ok: true, result };

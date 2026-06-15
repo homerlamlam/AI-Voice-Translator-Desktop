@@ -241,7 +241,7 @@ export const MainPage = () => {
       await playerRef.current.play({
         source:
           speechProvider === 'openai'
-            ? response.result.audioOutputPath
+            ? response.result.audioPlaybackUrl || response.result.audioOutputPath
             : playerRef.current.createTestTone(),
         outputDeviceId: selectedOutputDevice || undefined,
       });

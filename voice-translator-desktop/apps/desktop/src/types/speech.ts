@@ -12,6 +12,7 @@ export interface TranslationResult {
 
 export interface SynthesisResult {
   audioOutputPath: string;
+  audioPlaybackUrl?: string;
   mimeType: string;
   voice: string;
 }
@@ -20,6 +21,7 @@ export interface SpeechPipelineResult {
   sourceText: string;
   translatedText: string;
   audioOutputPath: string;
+  audioPlaybackUrl?: string;
 }
 
 export interface SpeechProvider {

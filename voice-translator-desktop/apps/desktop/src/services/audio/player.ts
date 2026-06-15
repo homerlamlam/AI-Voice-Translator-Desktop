@@ -19,6 +19,7 @@ export class AudioPlayerService {
       const audio = new Audio() as SinkableAudioElement;
       this.audio = audio;
       this.state = 'playing';
+      const sourceDescription = describeSource(request.source);
 
       if (request.outputDeviceId && audio.setSinkId) {
         await audio.setSinkId(request.outputDeviceId);
@@ -33,7 +34,12 @@ export class AudioPlayerService {
         };
         audio.onerror = () => {
           this.cleanup();
-          reject(new VoiceTranslatorError('AUDIO_OUTPUT_FAILED', 'Audio element failed to play.'));
+          reject(
+            new VoiceTranslatorError(
+              'AUDIO_OUTPUT_FAILED',
+              `Audio element failed to play source: ${sourceDescription}.`,
+            ),
+          );
         };
       });
 
@@ -41,7 +47,11 @@ export class AudioPlayerService {
       await finished;
     } catch (error) {
       this.stop();
-      throw new VoiceTranslatorError('AUDIO_OUTPUT_FAILED', 'Failed to play audio output.', error);
+      throw new VoiceTranslatorError(
+        'AUDIO_OUTPUT_FAILED',
+        `Failed to play audio output: ${error instanceof Error ? error.message : 'Unknown error.'}`,
+        error,
+      );
     }
   }
 
@@ -118,4 +128,20 @@ const writeAscii = (view: DataView, offset: number, text: string): void => {
   for (let index = 0; index < text.length; index += 1) {
     view.setUint8(offset + index, text.charCodeAt(index));
   }
+};
+
+const describeSource = (source: string | Blob): string => {
+  if (source instanceof Blob) {
+    return source.type || 'blob';
+  }
+
+  if (source.startsWith('data:')) {
+    return source.slice(0, source.indexOf(';') > 0 ? source.indexOf(';') : 32);
+  }
+
+  if (source.startsWith('file:')) {
+    return 'file URL';
+  }
+
+  return 'URL';
 };

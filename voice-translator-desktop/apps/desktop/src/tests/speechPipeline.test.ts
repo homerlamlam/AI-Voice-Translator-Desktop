@@ -82,6 +82,18 @@ describe('SpeechPipeline', () => {
       expect(response.error.message).toBe('Generic provider failure.');
     }
   });
+
+  it('passes synthesized playback urls through the pipeline result', async () => {
+    const pipeline = new SpeechPipeline(new PlaybackUrlProvider());
+
+    const response = await pipeline.run(new Blob(['audio']));
+
+    expect(response.ok).toBe(true);
+    if (response.ok) {
+      expect(response.result.audioOutputPath).toBe('file:///tmp/tts.mp3');
+      expect(response.result.audioPlaybackUrl).toBe('data:audio/mpeg;base64,AAAA');
+    }
+  });
 });
 
 class FailingProvider implements SpeechProvider {
@@ -131,5 +143,24 @@ class GenericFailingProvider implements SpeechProvider {
       throw new Error('Generic provider failure.');
     }
     return { audioOutputPath: '/mock.wav', mimeType: 'audio/wav', voice: 'alloy' };
+  }
+}
+
+class PlaybackUrlProvider implements SpeechProvider {
+  async transcribe(): Promise<TranscriptionResult> {
+    return { sourceText: '\u4f60\u597d', language: 'zh-CN' };
+  }
+
+  async translate(): Promise<TranslationResult> {
+    return { translatedText: 'Hello', targetLanguage: 'en' };
+  }
+
+  async synthesize(): Promise<SynthesisResult> {
+    return {
+      audioOutputPath: 'file:///tmp/tts.mp3',
+      audioPlaybackUrl: 'data:audio/mpeg;base64,AAAA',
+      mimeType: 'audio/mpeg',
+      voice: 'alloy',
+    };
   }
 }
