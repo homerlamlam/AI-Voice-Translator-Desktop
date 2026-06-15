@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+const { contextBridge, ipcRenderer } = require('electron') as typeof import('electron');
 
 contextBridge.exposeInMainWorld('desktopApi', {
   ping: () => ipcRenderer.invoke('app:ping'),

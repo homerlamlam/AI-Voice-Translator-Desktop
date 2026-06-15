@@ -40,6 +40,7 @@ export const MainPage = () => {
   const [speechProvider, setSpeechProvider] = useState<AppSettings['speechProvider']>(
     initialSettings.speechProvider,
   );
+  const [isDesktopBridgeAvailable, setIsDesktopBridgeAvailable] = useState(false);
   const [durationMs, setDurationMs] = useState(0);
   const [volume, setVolume] = useState(0);
   const recorderRef = useRef<AudioRecorderService | null>(null);
@@ -74,6 +75,16 @@ export const MainPage = () => {
   useEffect(() => {
     statusRef.current = status;
   }, [status]);
+
+  useEffect(() => {
+    const hasBridge = Boolean(window.desktopApi);
+    setIsDesktopBridgeAvailable(hasBridge);
+
+    if (!hasBridge && speechProvider === 'openai') {
+      setSpeechProvider('mock');
+      addLog('OpenAI provider requires the Electron desktop bridge; falling back to mock provider');
+    }
+  }, [addLog, speechProvider]);
 
   const transitionTo = useCallback(
     (nextStatus: AppStatus) => {
@@ -162,6 +173,11 @@ export const MainPage = () => {
   };
 
   const handleSpeechProviderChange = (provider: AppSettings['speechProvider']) => {
+    if (provider === 'openai' && !isDesktopBridgeAvailable) {
+      addLog('OpenAI provider requires the Electron desktop app window');
+      return;
+    }
+
     setSpeechProvider(provider);
     saveSettings({ speechProvider: provider });
     addLog(`speech provider set to ${provider}`);
@@ -395,9 +411,15 @@ export const MainPage = () => {
             }
           >
             <option value="mock">Mock provider</option>
-            <option value="openai">OpenAI provider</option>
+            <option value="openai" disabled={!isDesktopBridgeAvailable}>
+              OpenAI provider
+            </option>
           </select>
         </label>
+
+        <div className="hotkey-note">
+          Desktop bridge: {isDesktopBridgeAvailable ? 'available' : 'unavailable'}
+        </div>
 
         <label className="field" htmlFor="ptt-hotkey">
           <span>Push-to-talk hotkey</span>

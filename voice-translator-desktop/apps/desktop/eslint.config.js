@@ -23,6 +23,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ['src/main/preload.cts'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+  {
     ignores: ['dist/', 'dist-electron/', 'node_modules/'],
   },
 );
