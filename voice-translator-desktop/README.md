@@ -81,6 +81,13 @@ OPENAI_TTS_MODEL=gpt-4o-mini-tts
 
 In the app, keep `Speech provider` set to `Mock provider` for offline testing. Select `OpenAI provider` only after configuring `OPENAI_API_KEY`.
 
+Security notes:
+
+- Do not commit `.env.local`; it is already ignored by Git.
+- Do not paste API keys into issue trackers, chat logs, or screenshots.
+- If a key was pasted into a chat or log, rotate it in the provider dashboard before using the app long term.
+- Runtime error messages redact `sk-...` tokens before showing them in the UI logs.
+
 ## Next Recommended Step
 
 Add a native global keyboard hook for strict system-wide push-to-talk release detection. Electron's built-in `globalShortcut` can detect a global press, but it does not provide reliable key release events.

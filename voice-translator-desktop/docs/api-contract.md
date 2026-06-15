@@ -88,3 +88,5 @@ The renderer never reads `OPENAI_API_KEY`. In OpenAI mode it calls Electron IPC:
 - `speech:openai-synthesize`
 
 The main process reads `.env.local` or process environment variables, calls OpenAI, writes synthesized audio to local app data, and returns a playable `file://` URL.
+
+Any `sk-...` token found in user-visible error messages must be redacted as `[REDACTED_API_KEY]`.

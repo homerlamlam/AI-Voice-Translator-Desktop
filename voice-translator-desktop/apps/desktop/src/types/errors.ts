@@ -33,18 +33,22 @@ export const toAppError = (
   fallbackMessage: string,
 ): AppError => {
   if (isAppError(error)) {
-    return error;
+    return { ...error, message: redactSecrets(error.message) };
   }
 
   if (error instanceof VoiceTranslatorError) {
-    return { code: error.code, message: error.message, cause: error.cause };
+    return { code: error.code, message: redactSecrets(error.message), cause: error.cause };
   }
 
   if (error instanceof Error) {
-    return { code: fallbackCode, message: error.message || fallbackMessage, cause: error };
+    return {
+      code: fallbackCode,
+      message: redactSecrets(error.message || fallbackMessage),
+      cause: error,
+    };
   }
 
-  return { code: fallbackCode, message: fallbackMessage, cause: error };
+  return { code: fallbackCode, message: redactSecrets(fallbackMessage), cause: error };
 };
 
 export const isAppError = (error: unknown): error is AppError => {
@@ -55,3 +59,6 @@ export const isAppError = (error: unknown): error is AppError => {
   const candidate = error as Partial<AppError>;
   return typeof candidate.code === 'string' && typeof candidate.message === 'string';
 };
+
+export const redactSecrets = (message: string): string =>
+  message.replace(/sk-[A-Za-z0-9_-]{12,}/g, '[REDACTED_API_KEY]');

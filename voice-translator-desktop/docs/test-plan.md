@@ -32,6 +32,7 @@ The first implementation uses a generated WAV test tone and `HTMLAudioElement`. 
 - Renderer provider sends audio bytes through the desktop bridge.
 - Renderer provider preserves explicit bridge errors.
 - Main process keeps `OPENAI_API_KEY` out of renderer code.
+- User-visible errors redact `sk-...` token values.
 - With a real key, record a short Chinese phrase and verify OpenAI ASR, translation, TTS file creation, and playback.
 
 ## Push-to-Talk Tests

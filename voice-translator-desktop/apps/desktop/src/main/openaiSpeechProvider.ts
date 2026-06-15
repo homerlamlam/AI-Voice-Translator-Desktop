@@ -9,7 +9,7 @@ import type {
   TranslationResult,
 } from '../types/speech.js';
 import type { AppErrorCode } from '../types/errors.js';
-import { VoiceTranslatorError } from '../types/errors.js';
+import { redactSecrets, VoiceTranslatorError } from '../types/errors.js';
 
 interface OpenAiConfig {
   apiKey: string;
@@ -216,7 +216,9 @@ const extractResponseText = (body: unknown): string => {
 const readOpenAiError = async (response: Response) => {
   try {
     const body = (await response.json()) as { error?: { message?: string } };
-    return body.error?.message ?? `OpenAI request failed with status ${response.status}.`;
+    return redactSecrets(
+      body.error?.message ?? `OpenAI request failed with status ${response.status}.`,
+    );
   } catch {
     return `OpenAI request failed with status ${response.status}.`;
   }
